@@ -1,6 +1,6 @@
 # High Way Cinema
 
-Our client has a cinema in Wrocław, Poland. Currently, all movies schedule is done by Pen and Paper on big board where there is plan for given time for all movies the cinema shows. Planner Jadwiga needs to schedule seans(seans is movie schedule at given time)for best used of the space.
+Our client has a cinema in Wrocław, Poland. Currently, all movie scheduling is done using Pen and Paper on a big board where there is a plan for given time of all the movies the cinema shows. Planner Jadwiga needs to schedule screenings for best use of the space.
 
 ## Board overview
 
@@ -9,29 +9,28 @@ Our client has a cinema in Wrocław, Poland. Currently, all movies schedule is d
 
 ## Domain requirements
 
-We would like to help Jadwiga to do better job with his weekly task with planning the seans. Idea is to create virtual board that she will be able to add seans to the board.
+We would like to help Jadwiga to do a better job with her weekly task of planning the screenings. The idea is to create a virtual board that she will be able to add screenings to.
 
 User Stories:
-- Planner Jadwiga will be able to schedule Seans for given movie at particular time every day week from 8:00-22:00
-- Any 2 scheduled movies can't be on same time and same room. Even the overlapping is forbidden.
-- Every seans need to have maintenance slot to clean up whole Room. Every room have different cleaning slot.
-- Some movies can have 3d glasses required.
-- Not every movie are equal e.g. Premier need to be after working hours around 17:00-21:00
-- There is possibilities that given room may not be available for particular time slot time or even days.
+- Planner Jadwiga will be able to schedule a screening for a given movie at a particular time every day of week between 8:00 and 22:00.
+- Any 2 scheduled movies can't be screened at the same time in the same room. Even overlapping is forbidden.
+- Every screening has to have a maintenance slot to clean up the whole room. Every room has a different cleaning slot.
+- Some movies may require 3d.
+- Not all movies are equal, e.g. Premiere has to be after working hours around 17:00-21:00.
+- There is a possibility that a given room may not be available for a particular time slot or on specific days.
 
 
-You task is to model the week planning of the seans by Jadwiga.
+Your task is to model the weekly planning of the screenings by Jadwiga.
 
 ## Assumption
-- Catalog of movies already exists(telling if it needs 3d glasses, how long the movie will take)
+- The catalog of movies already exists (saying whether they need 3d glasses, how long the movie takes)
 
 ### Challenge notes
 
-* Movie Catalog is not in scope of this challenge but some model will be required to fulfill given task
-* Consider concurrency modification. How to solve problem
-when two Jadwiga's add different movies to same time and same room.
-* If you have question to requirements simply just ask us.
-* If during the assignment you will work on real database and UI you will lose precise time, so we encourage you to not do so.
+* The Movie Catalog is not in scope of this challenge but some model will be required to fulfill the given task
+* Consider concurrent modification. How to solve the problem of two Jadwigas adding different movies at the same time and in the same room.
+* If you have a question about the requirements simply just ask us.
+* If during the assignment you decide to work on a real database and UI you will lose precious time, so we encourage you to not do so.
 
 #### What we care for:
 - Solid domain model
@@ -41,15 +40,54 @@ when two Jadwiga's add different movies to same time and same room.
 
 #### What we don’t care for:
 - UI to be implemented
-- Using database
+- Using a database
 - All the cases to be covered.
 
 #### What we expect from solution:
-- Treat it like production code. Develop your software in the same way that you would for any code that is intended to be deployed to production.
-- Would be good to describe decision you make so future developers won't be scratching the head about the reasoning.
-- Test should be green
+- Treat it like production code. Develop your software in the same way that you would for any other code that is intended to be deployed to production.
+- Would be good to describe the decisions you make so that future developers won't be scratching their heads about the reasoning.
+- Tests should be green.
 - Code should be on github repo.
 
+------
 
+## Q&A regarding the requirements:
 
+**Q. Does the "8:00-22:00" requirement mean that the movie has to *start* or *end* before 22?**
 
+It should start before 22.
+
+**Q. Should the schedule operate on actual dates, or just days of a week? "Actual dates" seem more future-proof, as they allow for extending the schedule beyond a single week, while still allowing a creation of weekly schedules grouped by day.**
+
+Let's use actual dates.
+
+**Q. Do we expect the schedule to always be divided into days?**
+
+We may have days when there are movies being screened after midnight which should still be assigned to the previous day, but otherwise there will always be a break between days.
+
+*Implementation note:* In the end the implementation assumes all movies start before midnight, but it should be fairly easy to add after-midnight screenings.
+
+**Q. Does room unavailability during specific days mean actual dates or days of a week?**
+
+Rooms may be unavailable during given days of a week, e.g. room 1 might be unavailable every Monday between 8:00 and 12:00.
+
+## Implementation notes:
+
+I took the liberty of renaming "seans" to "screening" :).
+
+SchedulingService is the entry point of both scheduling new screenings and getting a schedule. It's responsible for performing all communications with the "outside". The remaining classes in the schedule package are immutable and perform most of the business logic.
+
+Concurrent modification could be solved using optimistic locking, where we check whether there haven't been any updates before saving the modification. In SQL it would look something like this:
+
+```sql
+UPDATE items SET version = $version, other_field = some_value WHERE version = $version - 1 
+```
+
+A part of that solution can be seen in the SchedulingService.
+
+Things potentially missing:
+* logging
+* REST API
+* support for a daily schedule which extends beyond midnight
+* tests for exception messages
+* movie and room repositories' support for modification, i.e. they're unusable outside of tests
